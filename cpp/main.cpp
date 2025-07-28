@@ -1,50 +1,72 @@
-#include <iostream>     // For printing to terminal using std::cout
-#include <fstream>      // For writing data to a file
-#include <chrono>       // For working with time (delay, timestamp)
-#include <thread>       // For using sleep (to simulate time intervals)
-#include "MotionGenerator.h"  // Your custom class for trapezoidal motion
+#include <iostream>
+#include <fstream>
+#include <chrono>
+#include <thread>
+#include <iomanip>      // For leading zeros in file index
+#include "MotionGenerator.h"
+#include <sstream>
 
 
 int main() {
-    // Create a MotionGenerator object
-    // Parameters: maxVelocity = 2.0 units/s, maxAcceleration = 1.0 units/s^2, initialPosition = 0.0
-    MotionGenerator motionGen(2.0, 1.0, 0.0);
+    int fileIndex = 1;  // Start index for filenames (001 to 100)
 
+    // Outer loop: test maxVelocity from 1 to 10
+    for (int maxVel = 1; maxVel <= 10; ++maxVel) {
 
-    // Create a CSV file to log position values over time
-    std::ofstream outFile("motion_output.csv");
+        // Inner loop: test maxAcceleration from 1 to 10
+        for (int maxAcc = 1; maxAcc <= 10; ++maxAcc) {
 
-    // Write the CSV header: column names
-    outFile << "Time(ms),Position\n";
+            // Create MotionGenerator instance with current velocity & acceleration
+            // Initial position is set to 0.0
+            MotionGenerator motionGen(static_cast<float>(maxVel), static_cast<float>(maxAcc), 0.0f);
 
+            // Create filename with leading zeros and current parameters
+            std::ostringstream filename;
+            filename << std::setw(3) << std::setfill('0') << fileIndex
+                     << "_maxVelocity_" << maxVel
+                     << "_maxAcceleration_" << maxAcc
+                     << "_motion_output.csv";
 
-    // Run a simulation loop for 100 steps (i = 0 to 99)
-    for (int i = 0; i < 100; ++i) {
-        // Call the motion profile update function
-        // It moves the object toward the target position (10.0 units)
-        float output = motionGen.update(10.0);
+            // Open CSV file to save results
+            std::ofstream outFile(filename.str());
 
-        // Calculate simulated time in milliseconds (100 ms per loop)
-        unsigned long time = i * 100;
+            // CSV Header: Time and Position
+            outFile << "Time(ms),Position\n";
 
+            // Simulate motion over 100 steps (each step = 100ms)
+            for (int i = 0; i < 100; ++i) {
+                // Target reference position is always 10.0 units
+                float output = motionGen.update(10.0f);
 
-        // Print current time and position to terminal
-        std::cout << "Time: " << time << " ms, Position: " << output << std::endl;
+                // Simulated time in milliseconds
+                unsigned long time = i * 100;
 
-        // Also write the same data to the CSV file for plotting later
-        outFile << time << "," << output << "\n";
+                // Print to terminal (optional)
+                std::cout << "File " << fileIndex
+                          << " | V=" << maxVel << ", A=" << maxAcc
+                          << " | Time: " << time
+                          << " ms, Position: " << output << std::endl;
 
+                // Write data to CSV
+                outFile << time << "," << output << "\n";
 
-        // Pause the loop for 100 milliseconds to simulate real-time movement
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                // Wait for 100 ms to simulate real-time step
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+
+            // Close file after 100 steps
+            outFile.close();
+
+            // Confirm saved
+            std::cout << "Saved: " << filename.str() << "\n\n";
+
+            // Move to next file
+            fileIndex++;
+        }
     }
 
-    // Close the CSV file once the loop is done
-    outFile.close();
+    // All done
+    std::cout << "All 100 simulations complete. Check the CSV files.\n";
 
-    // Notify user that file is saved
-    std::cout << "Output saved to motion_output.csv\n";
-
-    // End of program
     return 0;
 }
